@@ -1,0 +1,59 @@
+// Cole este código em https://dbdiagram.io para gerar o ERD.
+// Depois: Export > Export to PNG → salvar como docs/erd.png
+
+Table fornecedores {
+  id bigint [pk, increment]
+  nome text [not null]
+  categoria text
+  contato text
+  criado_em timestamp
+}
+
+Table produtos {
+  id bigint [pk, increment]
+  nome text [not null]
+  unidade_medida text [not null, note: 'kg | g | L | ml | un | cx | dz']
+  categoria text
+  criado_em timestamp
+}
+
+Table notas_fiscais {
+  id bigint [pk, increment]
+  fornecedor_id bigint [not null, ref: > fornecedores.id]
+  data date [not null]
+  total decimal [not null]
+  fonte text [not null, note: 'foto_ia | manual | csv']
+  foto_url text
+  criado_em timestamp
+}
+
+Table nota_linhas {
+  id bigint [pk, increment]
+  nota_id bigint [not null, ref: > notas_fiscais.id]
+  produto_id bigint [not null, ref: > produtos.id]
+  quantidade decimal [not null]
+  preco_unitario decimal [not null]
+}
+
+Table receitas {
+  id bigint [pk, increment]
+  nome text [not null]
+  preco_venda decimal [not null]
+  categoria_menu text
+  porcoes int [not null, default: 1]
+  criado_em timestamp
+}
+
+Table receita_ingredientes {
+  id bigint [pk, increment]
+  receita_id bigint [not null, ref: > receitas.id]
+  produto_id bigint [not null, ref: > produtos.id]
+  quantidade decimal [not null]
+}
+
+Table vendas {
+  id bigint [pk, increment]
+  receita_id bigint [not null, ref: > receitas.id]
+  data date [not null]
+  unidades int [not null]
+}

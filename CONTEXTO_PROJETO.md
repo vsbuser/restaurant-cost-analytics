@@ -203,8 +203,8 @@ Entidades principais (schema `restaurant`):
 
 ## 8. Estado atual
 
-- **Etapa atual:** 0 — Setup do repositório ✅ CONCLUÍDA (repo publicado em github.com/vsbuser/restaurant-cost-analytics)
-- **Última sessão:** 10/07/2026 — Etapa 0 executada: estrutura completa criada, `.gitignore`, `.env.example`, `requirements.txt`, README bilíngue, `docs/decisoes.md` iniciado, git init + commit inicial (`chore: initial project structure`) na branch `main`
-- **Próximo passo:** Etapa 1 — schema SQL (`sql/schema.sql` + Supabase + ERD), na branch `etapa-1-schema`
-- **Decisões tomadas:** extração por foto com VLM local via Ollama como padrão, Claude API como alternativa plugável; app mobile via navegador (sem app nativo); MVP para um único estabelecimento
+- **Etapa atual:** 1 — Modelo de dados e fundamentos ✅ CONCLUÍDA
+- **Última sessão:** 10/07/2026 — Etapa 1 executada na branch `etapa-1-schema`: DDL completo em `sql/schema.sql` (schema `restaurant`, 7 tabelas: fornecedores, produtos, notas_fiscais, nota_linhas, receitas, receita_ingredientes, vendas), aplicado com sucesso no projeto Supabase `restaurant-cost-analytics` (via connection string do pooler, porta 6543 — a conexão direta só resolve em IPv6 e não funcionou na rede local); ERD gerado em `docs/erd.png` (fonte em `docs/erd.dbml`); decisão de design registrada em `docs/decisoes.md` (preço fica em `nota_linhas`, não em `produtos`, para preservar histórico)
+- **Próximo passo:** Etapa 2 — gerador de dados sintéticos (`scripts/generate_synthetic.py`), 12 meses de notas com sazonalidade e inflação gradual
+- **Decisões tomadas:** extração por foto com VLM local via Ollama como padrão, Claude API como alternativa plugável; app mobile via navegador (sem app nativo); MVP para um único estabelecimento; schema `restaurant` dedicado no Postgres; `unidade_medida` e `fonte` via `CHECK` constraint (não tabela de lookup) nesta fase
 - **Decisões pendentes:** nome definitivo da app; modelo VLM final (Qwen2.5-VL vs MiniCPM-V — testar os dois na Etapa 6)
