@@ -203,8 +203,8 @@ Entidades principais (schema `restaurant`):
 
 ## 8. Estado atual
 
-- **Etapa atual:** 0 — Setup do repositório (concluída localmente; falta push no GitHub)
+- **Etapa atual:** 0 — Setup do repositório ✅ CONCLUÍDA (repo publicado em github.com/vsbuser/restaurant-cost-analytics)
 - **Última sessão:** 10/07/2026 — Etapa 0 executada: estrutura completa criada, `.gitignore`, `.env.example`, `requirements.txt`, README bilíngue, `docs/decisoes.md` iniciado, git init + commit inicial (`chore: initial project structure`) na branch `main`
-- **Próximo passo:** criar repo vazio `restaurant-cost-analytics` no GitHub, `git remote add origin` + push; criar `.venv` e instalar dependências; depois iniciar Etapa 1 (schema SQL)
+- **Próximo passo:** Etapa 1 — schema SQL (`sql/schema.sql` + Supabase + ERD), na branch `etapa-1-schema`
 - **Decisões tomadas:** extração por foto com VLM local via Ollama como padrão, Claude API como alternativa plugável; app mobile via navegador (sem app nativo); MVP para um único estabelecimento
 - **Decisões pendentes:** nome definitivo da app; modelo VLM final (Qwen2.5-VL vs MiniCPM-V — testar os dois na Etapa 6)
