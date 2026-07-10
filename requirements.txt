@@ -1,0 +1,19 @@
+# App
+streamlit
+supabase
+python-dotenv
+
+# Data & analysis
+pandas
+plotly
+scikit-learn
+statsmodels
+
+# Image preprocessing
+pillow
+opencv-python-headless
+
+# Extraction backend
+fastapi
+uvicorn
+requests
