@@ -2,9 +2,11 @@
 streamlit
 supabase
 python-dotenv
+psycopg2-binary
 
 # Data & analysis
 pandas
+numpy
 plotly
 scikit-learn
 statsmodels
