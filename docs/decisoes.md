@@ -27,3 +27,10 @@ Formato: **o quê / por quê / alternativas descartadas**.
 - **Por quê:** normalização (evitar dependência transitiva do preço em relação ao produto) e para preservar o histórico de variação de preço por compra, que é a base das métricas de food cost e alerta de fornecedor.
 - **Alternativas descartadas:** tabelas de lookup separadas para `unidade_medida` e `fonte` de nota — trocado por `CHECK` constraints para simplificar o MVP; revisar se a lista de valores crescer muito.
 - **Trade-off aceito:** `unidade_medida` e `fonte` fixos via `CHECK` limitam flexibilidade, mas evitam overhead de tabelas extras nesta fase.
+
+## 2026-07-10 — Gerador de dados sintéticos (Etapa 2)
+
+- **O quê:** `scripts/generate_synthetic.py` conecta direto no Postgres via `psycopg2` (não via `supabase-py`) e usa `execute_values` para inserir `nota_linhas` e `vendas` em lote. Preço por compra segue um modelo multiplicativo (`preço_base × inflação × sazonalidade × fator_fornecedor × ruído log-normal`); vendas diárias por receita seguem Poisson com fator de dia da semana e crescimento mensal.
+- **Por quê:** conexão direta é mais rápida para carga em lote de milhares de linhas do que passar pela API REST do Supabase; modelo multiplicativo e Poisson são as escolhas estatísticas corretas para, respectivamente, série de preços (variação percentual) e contagem de eventos por período.
+- **Alternativas descartadas:** `Faker` para nomes de fornecedores/produtos — descartado em favor de uma lista curada de domínio (hospitality), mais realista para o portfólio do que nomes genéricos.
+- **Trade-off aceito:** o script tem um flag `--reset` que faz `TRUNCATE ... CASCADE` nas tabelas de dados antes de regerar — destrutivo por design, mas necessário para reprodutibilidade (mesma seed, mesmo resultado).
