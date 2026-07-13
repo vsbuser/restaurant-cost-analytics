@@ -1,6 +1,7 @@
 import streamlit as st
 
 from components.forms import editor_ingredientes
+from components.theme import aplicar_tema
 from services.database import (
     criar_receita,
     listar_food_cost,
@@ -8,8 +9,9 @@ from services.database import (
     listar_produtos,
 )
 
-st.set_page_config(page_title="Fichas Técnicas", page_icon="📋")
-st.title("Fichas Técnicas")
+st.set_page_config(page_title="Fichas Técnicas", page_icon="📋", layout="wide")
+aplicar_tema()
+st.title("📋 Fichas Técnicas")
 
 SEMAFORO_EMOJI = {"verde": "🟢", "amarelo": "🟡", "vermelho": "🔴"}
 CATEGORIAS_MENU = [

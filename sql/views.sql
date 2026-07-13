@@ -56,3 +56,52 @@ SELECT
         ELSE 'vermelho'
     END AS semaforo
 FROM restaurant.vw_custo_receita;
+
+-- ============================================================
+-- Views (Etapa 5) — dashboard analítico
+-- ============================================================
+
+-- ---------------------------------------------------------------
+-- vw_preco_medio_mensal: preço médio ponderado por produto/mês
+-- (ponderado pela quantidade comprada em cada nota, não uma média simples).
+-- ---------------------------------------------------------------
+CREATE OR REPLACE VIEW restaurant.vw_preco_medio_mensal AS
+SELECT
+    nl.produto_id,
+    p.nome AS produto,
+    date_trunc('month', nf.data)::date AS mes,
+    SUM(nl.quantidade * nl.preco_unitario) / SUM(nl.quantidade) AS preco_medio_ponderado
+FROM restaurant.nota_linhas nl
+JOIN restaurant.notas_fiscais nf ON nf.id = nl.nota_id
+JOIN restaurant.produtos p ON p.id = nl.produto_id
+GROUP BY nl.produto_id, p.nome, date_trunc('month', nf.data);
+
+-- ---------------------------------------------------------------
+-- vw_variacao_preco: compara a compra mais recente de cada produto com a
+-- anterior; alerta = true se o preço subiu mais de 10%.
+-- ---------------------------------------------------------------
+CREATE OR REPLACE VIEW restaurant.vw_variacao_preco AS
+WITH compras_numeradas AS (
+    SELECT
+        nl.produto_id,
+        nl.preco_unitario,
+        nf.data,
+        nf.fornecedor_id,
+        ROW_NUMBER() OVER (PARTITION BY nl.produto_id ORDER BY nf.data DESC, nl.id DESC) AS rn
+    FROM restaurant.nota_linhas nl
+    JOIN restaurant.notas_fiscais nf ON nf.id = nl.nota_id
+)
+SELECT
+    atual.produto_id,
+    p.nome AS produto,
+    f.nome AS fornecedor,
+    anterior.preco_unitario AS preco_anterior,
+    atual.preco_unitario AS preco_atual,
+    ROUND(100.0 * (atual.preco_unitario - anterior.preco_unitario) / anterior.preco_unitario, 1) AS variacao_pct,
+    (atual.preco_unitario - anterior.preco_unitario) / anterior.preco_unitario > 0.10 AS alerta
+FROM compras_numeradas atual
+JOIN compras_numeradas anterior
+    ON anterior.produto_id = atual.produto_id AND anterior.rn = atual.rn + 1
+JOIN restaurant.produtos p ON p.id = atual.produto_id
+JOIN restaurant.fornecedores f ON f.id = atual.fornecedor_id
+WHERE atual.rn = 1;

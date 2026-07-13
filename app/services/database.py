@@ -178,6 +178,67 @@ def criar_receita(nome, preco_venda, categoria_menu, porcoes, ingredientes):
     return receita_id
 
 
+def listar_variacao_precos():
+    return _query_df(
+        "SELECT produto, fornecedor, preco_anterior, preco_atual, variacao_pct, alerta "
+        "FROM restaurant.vw_variacao_preco ORDER BY variacao_pct DESC"
+    )
+
+
+def listar_preco_medio_mensal(produtos_nomes):
+    return _query_df(
+        "SELECT produto, mes, preco_medio_ponderado FROM restaurant.vw_preco_medio_mensal "
+        "WHERE produto = ANY(%s) ORDER BY mes",
+        params=(list(produtos_nomes),),
+    )
+
+
+def listar_top_produtos_por_gasto(limite=5):
+    return _query_df(
+        """
+        SELECT p.nome AS produto, SUM(nl.quantidade * nl.preco_unitario) AS gasto_total
+        FROM restaurant.nota_linhas nl
+        JOIN restaurant.produtos p ON p.id = nl.produto_id
+        GROUP BY p.nome ORDER BY gasto_total DESC LIMIT %s
+        """,
+        params=(limite,),
+    )
+
+
+def listar_gasto_por_fornecedor():
+    return _query_df(
+        """
+        SELECT f.nome AS fornecedor, SUM(nl.quantidade * nl.preco_unitario) AS gasto_total
+        FROM restaurant.nota_linhas nl
+        JOIN restaurant.notas_fiscais nf ON nf.id = nl.nota_id
+        JOIN restaurant.fornecedores f ON f.id = nf.fornecedor_id
+        GROUP BY f.nome ORDER BY gasto_total DESC
+        """
+    )
+
+
+def listar_receita_por_categoria():
+    return _query_df(
+        """
+        SELECT r.categoria_menu, SUM(v.unidades * r.preco_venda) AS receita_total
+        FROM restaurant.vendas v
+        JOIN restaurant.receitas r ON r.id = v.receita_id
+        GROUP BY r.categoria_menu ORDER BY receita_total DESC
+        """
+    )
+
+
+def food_cost_global():
+    df = _query_df(
+        """
+        SELECT SUM(v.unidades * fc.custo_total) AS custo, SUM(v.unidades * fc.preco_venda) AS venda
+        FROM restaurant.vendas v
+        JOIN restaurant.vw_food_cost fc ON fc.receita_id = v.receita_id
+        """
+    )
+    return round(100 * float(df["custo"].iloc[0]) / float(df["venda"].iloc[0]), 1)
+
+
 def criar_nota_fiscal(fornecedor_id, data, fonte, linhas):
     total = round(sum(qtd * preco for _, qtd, preco in linhas), 2)
     with get_connection() as conn:
