@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from components.forms import editor_linhas_nota
+from components.theme import aplicar_tema
 from services.database import (
     criar_nota_fiscal,
     listar_fornecedores,
@@ -12,8 +13,9 @@ from services.database import (
     listar_produtos,
 )
 
-st.set_page_config(page_title="Notas Fiscais", page_icon="🧾")
-st.title("Notas Fiscais")
+st.set_page_config(page_title="Notas Fiscais", page_icon="🧾", layout="wide")
+aplicar_tema()
+st.title("🧾 Notas Fiscais")
 
 fornecedores = listar_fornecedores()
 produtos = listar_produtos()

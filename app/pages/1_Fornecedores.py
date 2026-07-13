@@ -1,9 +1,11 @@
 import streamlit as st
 
+from components.theme import aplicar_tema
 from services.database import atualizar_fornecedor, criar_fornecedor, listar_fornecedores
 
-st.set_page_config(page_title="Fornecedores", page_icon="🚚")
-st.title("Fornecedores")
+st.set_page_config(page_title="Fornecedores", page_icon="🚚", layout="wide")
+aplicar_tema()
+st.title("🚚 Fornecedores")
 
 CATEGORIAS = ["hortifruti", "carnes", "peixes", "bebidas", "laticinios", "limpeza", "outros"]
 

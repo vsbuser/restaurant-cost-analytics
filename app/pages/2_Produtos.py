@@ -1,9 +1,11 @@
 import streamlit as st
 
+from components.theme import aplicar_tema
 from services.database import UNIDADES_MEDIDA, atualizar_produto, criar_produto, listar_produtos
 
-st.set_page_config(page_title="Produtos", page_icon="🥔")
-st.title("Produtos")
+st.set_page_config(page_title="Produtos", page_icon="🥔", layout="wide")
+aplicar_tema()
+st.title("🥔 Produtos")
 
 CATEGORIAS = ["hortifruti", "carnes", "peixes", "bebidas", "laticinios", "limpeza", "outros"]
 
