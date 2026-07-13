@@ -27,10 +27,24 @@ def get_pool():
 def get_connection():
     conn_pool = get_pool()
     conn = conn_pool.getconn()
+
+    # o pooler do Supabase encerra conexões ociosas; um "ping" barato evita
+    # devolver ao chamador uma conexão que já morreu do lado do servidor.
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+    except psycopg2.OperationalError:
+        conn_pool.putconn(conn, close=True)
+        conn = conn_pool.getconn()
+
+    saudavel = True
     try:
         yield conn
+    except psycopg2.OperationalError:
+        saudavel = False
+        raise
     finally:
-        conn_pool.putconn(conn)
+        conn_pool.putconn(conn, close=not saudavel)
 
 
 def _query_df(sql, params=None):
@@ -117,6 +131,51 @@ def listar_linhas_da_nota(nota_id):
         """,
         params=(nota_id,),
     )
+
+
+def listar_food_cost():
+    return _query_df(
+        "SELECT receita_id, nome, categoria_menu, porcoes, preco_venda, custo_total, "
+        "food_cost_pct, semaforo FROM restaurant.vw_food_cost ORDER BY food_cost_pct DESC"
+    )
+
+
+def listar_ingredientes_receita(receita_id):
+    return _query_df(
+        """
+        SELECT p.nome AS produto, ri.quantidade, p.unidade_medida,
+               up.ultimo_preco, (ri.quantidade * up.ultimo_preco) AS subtotal
+        FROM restaurant.receita_ingredientes ri
+        JOIN restaurant.produtos p ON p.id = ri.produto_id
+        LEFT JOIN restaurant.vw_ultimo_preco_produto up ON up.produto_id = ri.produto_id
+        WHERE ri.receita_id = %s
+        ORDER BY p.nome
+        """,
+        params=(receita_id,),
+    )
+
+
+def criar_receita(nome, preco_venda, categoria_menu, porcoes, ingredientes):
+    with get_connection() as conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO restaurant.receitas (nome, preco_venda, categoria_menu, porcoes) "
+                    "VALUES (%s, %s, %s, %s) RETURNING id",
+                    (nome, preco_venda, categoria_menu, porcoes),
+                )
+                receita_id = cur.fetchone()[0]
+                for produto_id, quantidade in ingredientes:
+                    cur.execute(
+                        "INSERT INTO restaurant.receita_ingredientes (receita_id, produto_id, quantidade) "
+                        "VALUES (%s, %s, %s)",
+                        (receita_id, produto_id, quantidade),
+                    )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+    return receita_id
 
 
 def criar_nota_fiscal(fornecedor_id, data, fonte, linhas):
