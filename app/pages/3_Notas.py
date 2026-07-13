@@ -12,6 +12,7 @@ from services.database import (
     listar_notas,
     listar_produtos,
 )
+from services.extractor import extrair_nota
 
 st.set_page_config(page_title="Notas Fiscais", page_icon="🧾", layout="wide")
 aplicar_tema()
@@ -24,7 +25,9 @@ if fornecedores.empty or produtos.empty:
     st.warning("Cadastre ao menos um fornecedor e um produto antes de registrar uma nota.")
     st.stop()
 
-tab_nova, tab_csv, tab_listagem = st.tabs(["Nova nota", "Importar CSV", "Notas registradas"])
+tab_nova, tab_foto, tab_csv, tab_listagem = st.tabs(
+    ["Nova nota", "Tirar foto", "Importar CSV", "Notas registradas"]
+)
 
 with tab_nova:
     fornecedor_nome = st.selectbox("Fornecedor", fornecedores["nome"], key="fornecedor_manual")
@@ -51,6 +54,88 @@ with tab_nova:
             st.session_state["manual_linhas"] = []
             st.success(f"Nota #{nota_id} registrada com {len(linhas_db)} item(ns).")
             st.rerun()
+
+with tab_foto:
+    st.caption(
+        "Tire uma foto da nota fiscal pelo celular (ou envie uma imagem). "
+        "A IA extrai os itens automaticamente — revise antes de salvar."
+    )
+    foto = st.camera_input("Foto da nota", key="foto_camera")
+    if foto is None:
+        foto = st.file_uploader("Ou envie uma imagem da nota", type=["jpg", "jpeg", "png"], key="foto_upload")
+
+    if foto is not None and st.session_state.get("foto_bytes_processado") != foto.getvalue():
+        with st.spinner("Extraindo dados da nota..."):
+            try:
+                st.session_state["foto_dados_extraidos"] = extrair_nota(foto.getvalue())
+                st.session_state["foto_bytes_processado"] = foto.getvalue()
+            except Exception as exc:
+                st.error(f"Não foi possível extrair os dados: {exc}")
+                st.session_state.pop("foto_dados_extraidos", None)
+
+    dados_foto = st.session_state.get("foto_dados_extraidos")
+    if dados_foto:
+        st.success("Dados extraídos — confira e ajuste antes de salvar.")
+
+        fornecedor_nomes = list(fornecedores["nome"])
+        sugestao_fornecedor = dados_foto.get("fornecedor")
+        indice_fornecedor = (
+            fornecedor_nomes.index(sugestao_fornecedor) if sugestao_fornecedor in fornecedor_nomes else 0
+        )
+        fornecedor_nome_foto = st.selectbox(
+            "Fornecedor", fornecedor_nomes, index=indice_fornecedor, key="fornecedor_foto"
+        )
+
+        data_sugerida = date.today()
+        if dados_foto.get("data"):
+            try:
+                data_sugerida = date.fromisoformat(dados_foto["data"])
+            except ValueError:
+                pass
+        data_foto = st.date_input(
+            "Data da compra", value=data_sugerida, max_value=date.today(), key="data_foto"
+        )
+
+        st.markdown("**Itens extraídos (edite se necessário)**")
+        produtos_nomes = list(produtos["nome"])
+        itens_editaveis = []
+        for i, item in enumerate(dados_foto.get("itens") or []):
+            col1, col2, col3 = st.columns([3, 2, 2])
+            nome_sugerido = item.get("produto", "")
+            indice_produto = produtos_nomes.index(nome_sugerido) if nome_sugerido in produtos_nomes else 0
+            produto_sel = col1.selectbox(
+                "Produto", produtos_nomes, index=indice_produto, key=f"foto_produto_{i}"
+            )
+            qtd_sel = col2.number_input(
+                "Quantidade", min_value=0.0, step=0.1,
+                value=float(item.get("quantidade") or 0), key=f"foto_qtd_{i}",
+            )
+            preco_sel = col3.number_input(
+                "Preço unitário", min_value=0.0, step=0.1,
+                value=float(item.get("preco_unitario") or 0), key=f"foto_preco_{i}",
+            )
+            itens_editaveis.append((produto_sel, qtd_sel, preco_sel))
+
+        total_foto = sum(qtd * preco for _, qtd, preco in itens_editaveis)
+        st.metric("Total da nota", f"R$ {total_foto:,.2f}")
+
+        if st.button("Confirmar e salvar", type="primary", key="salvar_foto"):
+            itens_validos = [(p, q, pr) for p, q, pr in itens_editaveis if q > 0]
+            if not itens_validos:
+                st.error("Nenhum item com quantidade válida.")
+            else:
+                fornecedor_id = int(
+                    fornecedores.loc[fornecedores["nome"] == fornecedor_nome_foto, "id"].iloc[0]
+                )
+                linhas_db = [
+                    (int(produtos.loc[produtos["nome"] == p, "id"].iloc[0]), q, pr)
+                    for p, q, pr in itens_validos
+                ]
+                nota_id = criar_nota_fiscal(fornecedor_id, data_foto, "foto_ia", linhas_db)
+                for chave in ["foto_dados_extraidos", "foto_bytes_processado"]:
+                    st.session_state.pop(chave, None)
+                st.success(f"Nota #{nota_id} registrada a partir da foto com {len(linhas_db)} item(ns).")
+                st.rerun()
 
 with tab_csv:
     st.caption("CSV com colunas: produto, quantidade, preco_unitario — uma linha por item da nota.")
